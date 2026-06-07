@@ -21,6 +21,6 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v6
         with:
-          name: mcp-sinequa-{{ $matrix.os }}
-          path: mcp-sinequa-{{ $matrix.os }}
+          name: mcp-sinequa-${{ matrix.os }}
+          path: mcp-sinequa-${{ matrix.os }}
 
