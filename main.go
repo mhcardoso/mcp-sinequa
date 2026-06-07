@@ -34,7 +34,7 @@ var debug = false
 func createBrowser() (*rod.Browser) {
 	if path, exists := launcher.LookPath(); exists {
 		u := launcher.New().Headless(!debug).Bin(path).MustLaunch()
-		return rod.New().ControlURL(u).MustConnect()
+		return rod.New().ControlURL(u).MustConnect().MustIgnoreCertErrors(true)
 	} else {
 		log.Fatal("There was no browser available.")
 	}
