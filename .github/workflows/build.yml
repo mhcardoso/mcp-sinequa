@@ -1,0 +1,26 @@
+name: Build mcp-sinequa
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.26
+      - name: Install dependencies
+        run: go get .
+      - name: Build for the OSes
+        run: GOOS=${{ matrix.os }} GOARCH=amd64 go build -o mcp-sinequa-${{ matrix.os }}
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v6
+        with:
+          name: mcp-sinequa-{{ $matrix.os }}
+          path: mcp-siinequa-{{ $matrix.os }}
+
