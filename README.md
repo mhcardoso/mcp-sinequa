@@ -18,8 +18,29 @@ documentation based on your query and/or what the models interprets as your quer
 There's two environment variables: SINEQUA_USERNAME and SINEQUA_PASSWORD, one for
 the username of your account in the documentation website and the other for the password.
 
-Install it as you normally would any other MCP for your particular thing (Claude, Codex,
-Opencode, whatever).
+For Opencode:
+
+1. Download the executable from the releases, either for Linux or Windows;
+    * Build it from source, making sure to name it "mcp-sinequa";
+2. Extract it from the zip, naming it "mcp-sinequa";
+3. Add the executable to your PATH;
+4. Open your ~/.config/opencode.json (or other location where you store the configuration
+for Opencode);
+5. Add the following block:
+
+```json
+"sinequa": {
+    "type": "local",
+    "command": ["mcp-sinequa"],
+    "enabled": true,
+    "environment": {
+        "SINEQUA_USERNAME": <your username here, in quotes>,
+        "SINEQUA_PASSWORD": <your password here, in quotes. escape characters appropriately>
+    }
+}
+```
+
+For other MCP enabled applications, install as you would there.
 
 ## FAQ
 
