@@ -29,13 +29,18 @@ for Opencode);
 5. Add the following block:
 
 ```json
-"sinequa": {
-    "type": "local",
-    "command": ["mcp-sinequa"],
-    "enabled": true,
-    "environment": {
-        "SINEQUA_USERNAME": <your username here, in quotes>,
-        "SINEQUA_PASSWORD": <your password here, in quotes. escape characters appropriately>
+{
+    "$schema": "https://opencode.ai/config.json",
+    "mcp": {
+        "sinequa": {
+            "type": "local",
+            "command": ["mcp-sinequa"],
+            "enabled": true,
+            "environment": {
+                "SINEQUA_USERNAME": <your username here, in quotes>,
+                "SINEQUA_PASSWORD": <your password here, in quotes. escape characters appropriately>
+            }
+        }
     }
 }
 ```
