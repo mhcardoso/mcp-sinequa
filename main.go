@@ -35,12 +35,14 @@ func createBrowser() (*rod.Browser) {
 	if path, exists := launcher.LookPath(); exists {
 		u := launcher.New().Headless(!debug).Bin(path).MustLaunch()
 		return rod.New().ControlURL(u).MustConnect().MustIgnoreCertErrors(true)
-	} else {
-		log.Fatal("There was no browser available.")
 	}
+	log.Fatal("There was no browser available.")
 	return nil
 }
 
+//This function uses the Must variants and does not return an error
+//because there shouldn't be any good reason for a working browser to
+//not be able to visit DocSearchBase or be redirected to the login page.
 func logIntoSinequa(page *rod.Page) {
 	page.MustNavigate(DocSearchBase)
 	page.MustWaitLoad()
@@ -64,34 +66,40 @@ func createListOfDocumentURLSForQuery(query string) ([]string, error) {
 	page.MustNavigate(createQueryURL(query))
 	page.MustWaitLoad()
 	page.MustWaitStable()
+
 	elems := page.MustElements(".sq-result-title")
 
-	neural, err:= page.Element(".text-end")
-	if err != nil {
-		log.Fatal(err)
+	if len(elems) == 0 {
+		return []string{}, nil
 	}
+
+	neural, err := page.Element(".text-end")
+	if err != nil {
+		return nil, err
+	}
+
 	pattern := regexp.MustCompile(`(?P<answers>\d+) answers found in (?P<documents>\d+) documents`)
 	neuralText, err := neural.Text()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	answersAndDocuments := pattern.FindAllStringSubmatch(neuralText, -1)
 	numAnswers, err := strconv.Atoi(answersAndDocuments[0][1])
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	numDocuments, err := strconv.Atoi(answersAndDocuments[0][2])
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	documents := []string{}
 	for i := range numDocuments {
 		elem, err := elems[numAnswers+i].Property("href")
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 		documents = append(documents, elem.String())
 	}
@@ -121,11 +129,11 @@ func getDocumentation(ctx context.Context, req *mcp.CallToolRequest, input Docum
 	query := input.Query
 	listOfURLS, err := createListOfDocumentURLSForQuery(query)
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, err
 	}
 	result, err := createDocumentationString(listOfURLS, browser)
 	if err != nil {
-		log.Fatal(err)
+		return nil, nil, err
 	}
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
