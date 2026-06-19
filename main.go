@@ -67,44 +67,49 @@ func createListOfDocumentURLSForQuery(query string) ([]string, error) {
 	page.MustWaitLoad()
 	page.MustWaitStable()
 
-	elems := page.MustElements(".sq-result-title")
-
-	if len(elems) == 0 {
-		return []string{}, nil
+	elems, err := page.Elements(".sq-result-title")
+	if err != nil {
+		return []string{"There were **no documents available** for this query, try a different query."}, nil
 	}
 
 	neural, err := page.Element(".text-end")
-	if err != nil {
-		return nil, err
-	}
 
-	pattern := regexp.MustCompile(`(?P<answers>\d+) answers found in (?P<documents>\d+) documents`)
 	neuralText, err := neural.Text()
 	if err != nil {
-		return nil, err
-	}
+		documents := []string{}
+		for i := range elems {
+			elem, err := elems[i].Property("href")
+			if err != nil {
+				return nil, err
+			}
+			documents = append(documents, elem.String())
+		}
 
-	answersAndDocuments := pattern.FindAllStringSubmatch(neuralText, -1)
-	numAnswers, err := strconv.Atoi(answersAndDocuments[0][1])
-	if err != nil {
-		return nil, err
-	}
-
-	numDocuments, err := strconv.Atoi(answersAndDocuments[0][2])
-	if err != nil {
-		return nil, err
-	}
-
-	documents := []string{}
-	for i := range numDocuments {
-		elem, err := elems[numAnswers+i].Property("href")
+		return documents, nil
+	} else {
+		neuralResultsPattern := regexp.MustCompile(`(?P<answers>\d+) answers found in (?P<documents>\d+) documents`)
+		answersAndDocuments := neuralResultsPattern.FindAllStringSubmatch(neuralText, -1)
+		numAnswers, err := strconv.Atoi(answersAndDocuments[0][1])
 		if err != nil {
 			return nil, err
 		}
-		documents = append(documents, elem.String())
-	}
 
-	return documents, nil
+		numDocuments, err := strconv.Atoi(answersAndDocuments[0][2])
+		if err != nil {
+			return nil, err
+		}
+
+		documents := []string{}
+		for i := range numDocuments {
+			elem, err := elems[numAnswers+i].Property("href")
+			if err != nil {
+				return nil, err
+			}
+			documents = append(documents, elem.String())
+		}
+
+		return documents, nil
+	}
 }
 
 func createDocumentationString(urls []string, browser *rod.Browser) (string, error) {
