@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"regexp"
 	"strconv"
@@ -30,13 +31,19 @@ var username string
 var password string
 var browser *rod.Browser
 var debug = false
+var programLevel = new(slog.LevelVar)
+var th *slog.TextHandler
+var logger *slog.Logger
+
 
 func createBrowser() (*rod.Browser) {
 	if path, exists := launcher.LookPath(); exists {
 		u := launcher.New().Headless(!debug).Bin(path).MustLaunch()
+		logger.Debug("Found a browser in", "path", path)
 		return rod.New().ControlURL(u).MustConnect().MustIgnoreCertErrors(true)
 	}
-	log.Fatal("There was no browser available.")
+	logger.Error("There was no browser available")
+	os.Exit(1)
 	return nil
 }
 
@@ -69,15 +76,18 @@ func createListOfDocumentURLSForQuery(query string) ([]string, error) {
 
 	elems, err := page.Elements(".sq-result-title")
 	if err != nil {
+		logger.Debug("The query had no results")
 		return []string{"There were **no documents available** for this query, try a different query."}, nil
 	}
 
-	neural, err := page.Element(".text-end")
+	neuralExists, neural, err := page.Has(".text-end")
 
-	neuralText, err := neural.Text()
-	if err != nil {
+	if !neuralExists {
 		documents := []string{}
 		for i := range elems {
+			if i >= 3 {
+				break
+			}
 			elem, err := elems[i].Property("href")
 			if err != nil {
 				return nil, err
@@ -87,6 +97,7 @@ func createListOfDocumentURLSForQuery(query string) ([]string, error) {
 
 		return documents, nil
 	} else {
+		neuralText, err := neural.Text()
 		neuralResultsPattern := regexp.MustCompile(`(?P<answers>\d+) answers found in (?P<documents>\d+) documents`)
 		answersAndDocuments := neuralResultsPattern.FindAllStringSubmatch(neuralText, -1)
 		numAnswers, err := strconv.Atoi(answersAndDocuments[0][1])
@@ -101,6 +112,9 @@ func createListOfDocumentURLSForQuery(query string) ([]string, error) {
 
 		documents := []string{}
 		for i := range numDocuments {
+			if i >= 3 {
+				break
+			}
 			elem, err := elems[numAnswers+i].Property("href")
 			if err != nil {
 				return nil, err
@@ -152,11 +166,13 @@ type DocumentationInput struct {
 }
 
 func init() {
+	th = slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: programLevel})
+	logger = slog.New(th)
 	args := os.Args
-	if len(args) == 2 {
-		if args[1] == "debug" {
-			debug = true
-		}
+	if (len(args) == 2 && args[1] == "debug") || (len(args) == 3 && args[2] == "debug") {
+		debug = true
+		programLevel.Set(slog.LevelDebug)
+		logger.Debug("Debug enabled")
 	}
 	if env_username, exists := os.LookupEnv("SINEQUA_USERNAME"); exists {
 		username = env_username
